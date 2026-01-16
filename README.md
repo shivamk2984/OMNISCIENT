@@ -1,5 +1,8 @@
 # OMNISCIENT
 
+![LOGO](https://github.com/shivamk2984/OMNISCIENT/blob/6349c665a99c6f62418a5e069e8de4cafb000b34/logo1.png)
+by codeinecasket
+
 ![Version](https://img.shields.io/badge/Version-1.0-white?style=for-the-badge&logo=windows)
 ![Platform](https://img.shields.io/badge/Platform-Windows-white?style=for-the-badge&logo=windows)
 ![License](https://img.shields.io/badge/License-GPLv3-white?style=for-the-badge&logo=gnu-bash)
@@ -96,6 +99,7 @@ The misuse of this tool to scan targets without permission is illegal. The devel
 ---
 
 *"Trust, but verify. Then verify again."*
+
 
 
 
