@@ -42,6 +42,24 @@ class ReportGenerator:
         
         categories = sorted(list(set(f.get('category', 'General') for f in findings)))
         
+        # Pre-calculate rows to avoid backslash in f-string expression errors in older Python
+        rows_html = ""
+        for f in findings:
+            cat = f.get('category', 'General')
+            sev = f['severity']
+            check = f['check']
+            # Escape backslashes for HTML content to be safe
+            details = str(f['details']).replace("\\", "\\\\") 
+            
+            rows_html += f"""
+            <tr data-category="{cat}">
+                <td><span class="badge badge-{sev}">{sev}</span></td>
+                <td>{cat}</td>
+                <td>{check}</td>
+                <td>{details}</td>
+            </tr>
+            """
+        
         html_content = f"""
         <!DOCTYPE html>
         <html lang="en">
@@ -301,14 +319,7 @@ class ReportGenerator:
                         </tr>
                     </thead>
                     <tbody>
-                    {''.join(f'''
-                    <tr data-category="{f.get('category', 'General')}">
-                        <td><span class="badge badge-{f['severity']}">{f['severity']}</span></td>
-                        <td>{f.get('category', 'General')}</td>
-                        <td>{f['check']}</td>
-                        <td>{f['details']}</td>
-                    </tr>
-                    ''' for f in findings)}
+                        {rows_html}
                     </tbody>
                 </table>
                 
