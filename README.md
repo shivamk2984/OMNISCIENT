@@ -67,6 +67,12 @@ Launch the console with administrative privileges for maximum visibility:
 python main.py
 ```
 
+For install dependenices
+
+```powershell
+powershell -ExecutionPolicy Bypass -File install_deps.ps1
+```
+
 ### The Interface
 
 *   **System Recon**: OS Build, Hotfixes, Architecture.
@@ -99,6 +105,7 @@ The misuse of this tool to scan targets without permission is illegal. The devel
 ---
 
 *"Trust, but verify. Then verify again."*
+
 
 
 
