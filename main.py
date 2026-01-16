@@ -402,7 +402,7 @@ class OmniscientMenu:
                 Text(f.get('category', 'General')[:10].upper()),
                 str(f.get('check', 'N/A')),
                 str(f.get('status', 'N/A')),
-                str(f.get('details', ''))[:80]
+                str(f.get('details', '')) # No truncation
             )
         self.console.print(table)
 
