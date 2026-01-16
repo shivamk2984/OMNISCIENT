@@ -60,6 +60,11 @@ class ReportGenerator:
             </tr>
             """
         
+        # Pre-calculate category buttons to avoid f-string nesting issues
+        buttons_html = ""
+        for c in categories:
+            buttons_html += f'<button class="filter-btn" onclick="filterTable(\'{c}\')">{c}</button>'
+
         html_content = f"""
         <!DOCTYPE html>
         <html lang="en">
@@ -305,7 +310,7 @@ class ReportGenerator:
                 
                 <div class="filters">
                     <button class="filter-btn active" onclick="filterTable('all')">ALL</button>
-                    {''.join(f'<button class="filter-btn" onclick="filterTable(\'{c}\')">{c}</button>' for c in categories)}
+                    {buttons_html}
                     <button class="filter-btn clear-btn" onclick="filterTable('all'); $('.dataTables_filter input').val('').keyup();">RESET VIEW</button>
                 </div>
 
