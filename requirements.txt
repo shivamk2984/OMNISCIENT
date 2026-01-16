@@ -1,0 +1,6 @@
+rich
+wmi
+pywin32
+requests
+pandas
+colorama
