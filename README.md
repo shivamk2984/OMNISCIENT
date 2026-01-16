@@ -11,7 +11,7 @@
 
 ---
 
-## 👁️ Capabilities
+## Capabilities
 
 ### 1. Total Sight (Deep Forensics)
 OMNISCIENT sees what traditional tools miss by querying low-level Windows APIs (WMI, WinReg, Win32).
@@ -33,7 +33,7 @@ Stop managing 20 different tool windows. The **Arsenal Bridge** acts as a unifie
 
 ---
 
-## ⚡ Installation
+## Installation
 
 1.  **Clone the Artifact**:
     ```powershell
@@ -56,7 +56,7 @@ Stop managing 20 different tool windows. The **Arsenal Bridge** acts as a unifie
 
 ---
 
-## ⚔️ Usage
+## Usage
 
 Launch the console with administrative privileges for maximum visibility:
 
@@ -75,7 +75,7 @@ python main.py
 
 ---
 
-## 📂 Report Artifacts
+## Report Artifacts
 
 Every scan generates a high-contrast, professional HTML report in the `reports/` folder.
 *   **Theme**: Dark/Monochrome (Brutalist).
@@ -84,7 +84,7 @@ Every scan generates a high-contrast, professional HTML report in the `reports/`
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 **OMNISCIENT** is a security auditing tool. It is intended for:
 1.  System Administrators securing their networks.
@@ -96,5 +96,6 @@ The misuse of this tool to scan targets without permission is illegal. The devel
 ---
 
 *"Trust, but verify. Then verify again."*
+
 
 
