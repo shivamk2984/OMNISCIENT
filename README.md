@@ -2,7 +2,8 @@
 
 ![Version](https://img.shields.io/badge/Version-1.0-white?style=for-the-badge&logo=windows)
 ![Platform](https://img.shields.io/badge/Platform-Windows-white?style=for-the-badge&logo=windows)
-![License](https://img.shields.io/badge/License-MIT-white?style=for-the-badge)
+![License](https://img.shields.io/badge/License-GPLv3-white?style=for-the-badge&logo=gnu-bash)
+
 
 **OMNISCIENT** is a high-precision digital forensics and red-team orchestration artifact for Windows environments. It unifies deep system reconnaissance, vulnerability analysis, and offensive tool management into a single, brutalist terminal interface.
 
@@ -95,4 +96,5 @@ The misuse of this tool to scan targets without permission is illegal. The devel
 ---
 
 *"Trust, but verify. Then verify again."*
+
 
