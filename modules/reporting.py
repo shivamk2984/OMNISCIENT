@@ -197,7 +197,8 @@ class ReportGenerator:
                     border-bottom: 1px solid #222;
                     padding: 15px !important;
                     font-size: 0.85em;
-                    word-wrap: break-word; /* Wrap long text */
+                    word-wrap: break-word; 
+                    word-break: break-all; /* Ensure paths break */
                     white-space: normal;
                 }}
 
