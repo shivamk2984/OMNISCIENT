@@ -1,12 +1,14 @@
 import os
 import subprocess
 import json
+from datetime import datetime
 
 class ExternalArsenalBridge:
     def __init__(self, console):
         self.console = console
         self.tools_path = os.path.join(os.getcwd(), "tools")
-        self._ensure_tools_dir()
+        self.logs_path = os.path.join(os.getcwd(), "logs", f"arsenal_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+        self._ensure_paths()
         
         # Define supported tools and their audit commands
         # Define supported tools and their audit commands (Binaries must be in tools/ folder)
@@ -87,15 +89,18 @@ class ExternalArsenalBridge:
             }
         }
 
-    def _ensure_tools_dir(self):
+    def _ensure_paths(self):
         if not os.path.exists(self.tools_path):
-            try:
-                os.makedirs(self.tools_path)
+            try: os.makedirs(self.tools_path)
+            except: pass
+        if not os.path.exists(self.logs_path):
+            try: os.makedirs(self.logs_path)
             except: pass
 
     def run_audit(self):
         findings = []
         self.console.print(f"[dim]   - Scanning Arsenal at: {self.tools_path}[/dim]")
+        self.console.print(f"[dim]   - Tool outputs will be saved to: {self.logs_path}[/dim]")
         
         installed_tools = []
         
@@ -110,7 +115,7 @@ class ExternalArsenalBridge:
                 "category": "Arsenal",
                 "check": "Tool Availability",
                 "status": "EMPTY",
-                "details": f"No external binaries found in {self.tools_path}. Add 'mimikatz.exe', 'autorunsc.exe', etc. to enable advanced bridges."
+                "details": f"No external binaries found. Add tools to {self.tools_path}"
             })
             return findings
 
@@ -122,18 +127,23 @@ class ExternalArsenalBridge:
                 full_cmd = f'"{path}" {config["args"]}'
                 
                 try:
-                    output = subprocess.check_output(full_cmd, shell=True, stderr=subprocess.STDOUT, timeout=15).decode(errors='ignore')
+                    output = subprocess.check_output(full_cmd, shell=True, stderr=subprocess.STDOUT, timeout=20).decode(errors='ignore')
                     
-                    description = f"Tool executed successfully. Output length: {len(output)} chars."
+                    # Save Output to Log File
+                    log_file_name = f"{key}_output.txt"
+                    log_file_path = os.path.join(self.logs_path, log_file_name)
+                    with open(log_file_path, "w", encoding="utf-8") as f:
+                        f.write(f"COMMAND: {full_cmd}\n")
+                        f.write("="*50 + "\n")
+                        f.write(output)
+                    
+                    description = f"Executed. Output saved to: logs/{os.path.basename(self.logs_path)}/{log_file_name}"
                     status = "PASS"
                     
                     if key == "mimikatz":
                         if "Mimikatz" in output:
                             status = "FAIL"
-                            description = "Mimikatz execution successful! Endpoint Protection failed to block."
-                    
-                    if key == "autorunsc":
-                        description = "Deep persistence scan via AutorunsC completed. (See logs for raw data)."
+                            description = f"Mimikatz ran successfully (AV Failed). Log: {log_file_name}"
                     
                     findings.append({
                         "severity": config['risk'],
