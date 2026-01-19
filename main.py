@@ -4,6 +4,7 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.table import Table
 import sys
+import subprocess
 import webbrowser
 from rich.markup import escape
 import time
