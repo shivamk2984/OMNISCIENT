@@ -178,7 +178,7 @@ class OmniscientMenu:
 
     def main_loop(self):
         while True:
-            self.console.clear()
+            # self.console.clear() # Removed to keep history visible
             self.display_banner()
             self.console.print("\n[bold]Surveillance Sectors:[/bold]")
             self.console.print("1. [white]System Reconnaissance[/white]")
@@ -243,6 +243,16 @@ class OmniscientMenu:
             # Check if git is installed
             subprocess.run(["git", "--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             
+            # Auto-Heal: Initialize Git if missing
+            if not os.path.exists(os.path.join(os.getcwd(), ".git")):
+                self.console.print("[yellow]   [*] Initializing fresh Git repository linkage...[/yellow]")
+                subprocess.run(["git", "init"], check=True, stdout=subprocess.DEVNULL)
+                subprocess.run(["git", "remote", "add", "origin", "https://github.com/shivamk2984/OMNISCIENT.git"], check=True, stdout=subprocess.DEVNULL)
+                self.console.print("[yellow]   [*] Fetching latest code...[/yellow]")
+                subprocess.run(["git", "fetch"], check=True, stdout=subprocess.DEVNULL)
+                subprocess.run(["git", "reset", "--hard", "origin/main"], check=True, stdout=subprocess.DEVNULL)
+                self.console.print("[green]   [+] Repository linked successfully.[/green]")
+
             # Pull changes
             result = subprocess.run(["git", "pull"], capture_output=True, text=True)
             
