@@ -24,7 +24,8 @@ Write-Host "`n[*] Checking Environment..." -ForegroundColor Gray
 try {
     $gitVersion = git --version 2>&1
     Write-Host "[+] Git found: $gitVersion" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "[!] Git not found. Auto-installing Portable Git (MinGit)..." -ForegroundColor Yellow
     $GitUrl = "https://github.com/git-for-windows/git/releases/download/v2.41.0.windows.1/MinGit-2.41.0-64-bit.zip"
     $BinDir = Join-Path $ScriptDir "bin"
@@ -32,37 +33,48 @@ try {
     
     if (-not (Test-Path $BinDir)) { New-Item -ItemType Directory -Path $BinDir | Out-Null }
     
-    try {
-        Write-Host "    Downloading MinGit..." -NoNewline
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest -Uri $GitUrl -OutFile $GitZip
+    # Check if we already have it to avoid redownloading loop
+    if (-not (Test-Path $GitZip) -and -not (Test-Path (Join-Path $BinDir "cmd\git.exe"))) {
+        try {
+            Write-Host "    Downloading MinGit..." -NoNewline
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            Invoke-WebRequest -Uri $GitUrl -OutFile $GitZip
+            Write-Host "Done." -ForegroundColor Green
+            
+            Write-Host "    Extracting..." -NoNewline
+            Expand-Archive -Path $GitZip -DestinationPath $BinDir -Force
+            Remove-Item $GitZip -Force
+            Write-Host "Done." -ForegroundColor Green
+        }
+        catch {
+            Write-Host "`n[!] Download/Extract failed: $_" -ForegroundColor Red
+        }
+    }
+        
+    # PERSISTENT PATH UPDATE
+    $GitCmdPath = Join-Path $BinDir "cmd"
+    $CurrentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ($CurrentPath -notlike "*$GitCmdPath*") {
+        Write-Host "    Adding Git to User PATH permanently..." -NoNewline
+        [Environment]::SetEnvironmentVariable("Path", "$CurrentPath;$GitCmdPath", "User")
+        $env:Path = "$GitCmdPath;$env:Path" # Apply to current session too
         Write-Host "Done." -ForegroundColor Green
-        
-        Write-Host "    Extracting..." -NoNewline
-        Expand-Archive -Path $GitZip -DestinationPath $BinDir -Force
-        Remove-Item $GitZip -Force
-        Write-Host "Done." -ForegroundColor Green
-        
-        # Add to Path for this session
-        $GitCmdPath = Join-Path $BinDir "cmd"
-        $env:Path = "$GitCmdPath;$env:Path"
-        
-        $gitVersion = git --version 2>&1
-        Write-Host "[+] Git installed temporarily: $gitVersion" -ForegroundColor Green
-    } catch {
-        Write-Host "`n[!] Failed to auto-install Git. Update feature may not work." -ForegroundColor Red
-        Write-Host "    Error: $_" -ForegroundColor Red
+    }
+    else {
+        Write-Host "    Git is already in User PATH." -ForegroundColor Gray
     }
 }
 try {
     $pyVersion = python --version 2>&1
     Write-Host "[+] Python found: $pyVersion" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "[!] 'python' command not found. Checking for 'py' launcher..." -ForegroundColor Yellow
     try {
         $pyVersion = py --version 2>&1
         Write-Host "[+] 'py' launcher found: $pyVersion" -ForegroundColor Green
-    } catch {
+    }
+    catch {
         Write-Host "[CRITICAL] Python is not installed or not in PATH." -ForegroundColor Red
         Write-Host "Please install Python 3.x from python.org and check 'Add to PATH'."
         exit 1
@@ -99,7 +111,8 @@ foreach ($strategy in $strategies) {
             $success = $true
             break
         }
-    } catch {
+    }
+    catch {
         Write-Host "[-] Strategy failed. Trying next..." -ForegroundColor DarkGray
     }
 }
@@ -108,7 +121,8 @@ foreach ($strategy in $strategies) {
 if ($success) {
     Write-Host "`n[+] Dependencies installed successfully!" -ForegroundColor Green
     Write-Host "[*] You can now run 'python main.py'" -ForegroundColor Cyan
-} else {
+}
+else {
     Write-Host "`n[!] All installation strategies failed." -ForegroundColor Red
     Write-Host "Manual fix: Ensure 'pip' is installed and run 'pip install -r requirements.txt'"
 }
