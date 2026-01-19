@@ -2,6 +2,7 @@ import os
 import subprocess
 import json
 from datetime import datetime
+from rich.prompt import Prompt
 
 class ExternalArsenalBridge:
     def __init__(self, console):
@@ -170,15 +171,8 @@ class ExternalArsenalBridge:
             },
             "sigcheck": {
                 "bin": "sigcheck.exe", 
-                "args": "-accepteula -u -e c:\\windows\\system32", 
-                "name": "SigCheck (Unsigned)", 
-                "category": "Sysinternals", 
-                "risk": "Info"
-            },
-            "whois": {
-                "bin": "whois.exe", 
-                "args": "-accepteula -v google.com", 
-                "name": "Whois Test", 
+                "args": "-accepteula -u -v -c c:\\windows\\system32\\drivers", 
+                "name": "SigCheck (Unsigned Drivers)", 
                 "category": "Sysinternals", 
                 "risk": "Info"
             }
@@ -219,10 +213,37 @@ class ExternalArsenalBridge:
             self.console.print(f"[bold cyan]   > Executing Bridge: {config['name']}...[/bold cyan]")
             
             try:
-                full_cmd = f'"{path}" {config["args"]}'
+                # INTERACTIVE PROMPTS FOR COMPLEX TOOLS
+                # -------------------------------------
+                current_args = config["args"]
+                
+                if key == "bloodyad":
+                    self.console.print("[yellow]   [*] BloodyAD requires target credentials.[/yellow]")
+                    if Prompt.ask("       Do you want to run BloodyAD interactively?", choices=["y", "n"], default="n") == "y":
+                         target_ip = Prompt.ask("       Target DC IP")
+                         domain = Prompt.ask("       Domain (e.g. contoso.com)")
+                         username = Prompt.ask("       Username")
+                         password = Prompt.ask("       Password")
+                         # Construct the specialized command
+                         current_args = f"-d {domain} -u {username} -p {password} --host {target_ip} get children"
+                    else:
+                        self.console.print("[dim]       Skipping interactive mode (using default help).[/dim]")
+
+                elif key == "kerbrute":
+                    self.console.print("[yellow]   [*] Kerbrute requires a username wordlist.[/yellow]")
+                    if Prompt.ask("       Do you want to run Kerbrute interactively?", choices=["y", "n"], default="n") == "y":
+                        wordlist = Prompt.ask("       Path to Wordlist")
+                        domain = Prompt.ask("       Target Domain")
+                        current_args = f"userenum -d {domain} {wordlist}"
+                    else:
+                         self.console.print("[dim]       Skipping interactive mode (using default help).[/dim]")
+                
+                # -------------------------------------
+
+                full_cmd = f'"{path}" {current_args}'
                 
                 try:
-                    output = subprocess.check_output(full_cmd, shell=True, stderr=subprocess.STDOUT, timeout=20).decode(errors='ignore')
+                    output = subprocess.check_output(full_cmd, shell=True, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, timeout=15).decode(errors='ignore')
                     
                     # Save Output to Log File
                     log_file_name = f"{key}_output.txt"
@@ -233,12 +254,68 @@ class ExternalArsenalBridge:
                         f.write(output)
                     
                     description = f"Executed. Output saved to: logs/{os.path.basename(self.logs_path)}/{log_file_name}"
-                    status = "PASS"
+                    # Analyze Output for Help/Errors vs Real Data
+                    is_real_output = False
+                    status = "INFO"
                     
+                    # Heuristics for "Did it actually work?"
+                    lower_out = output.lower()
+                    
+                    # Common Help/Error signatures
+                    help_indicators = ["usage:", "optional arguments:", "version:", "examples:", "arguments:", "options:", "command line error"]
+                    
+                    if any(s in lower_out for s in help_indicators) and len(output) < 2000:
+                         description = f"Tool produced Help/Syntax output. Check args. Log: {log_file_name}"
+                    elif "error" in lower_out or "exception" in lower_out or "failed" in lower_out:
+                         description = f"Tool execution error. Log: {log_file_name}"
+                         status = "WARN"
+                    else:
+                         is_real_output = True
+                         status = "FAIL" # In this context, FAIL means the tool ran and found something (which is bad for the defender)
+                         description = f"Tool ran successfully. Check artifacts. Log: {log_file_name}"
+
+                    # Tool-Specific Overrides
                     if key == "mimikatz":
-                        if "Mimikatz" in output:
+                        if "sekurlsa" in lower_out or "wdigest" in lower_out:
                             status = "FAIL"
-                            description = f"Mimikatz ran successfully (AV Failed). Log: {log_file_name}"
+                            description = "Mimikatz dumped credentials. AV Failed."
+                        if "error" in lower_out: # Handle the specific errors seen in logs
+                             status = "INFO"
+                             description = "Mimikatz blocked or failed to dump."
+
+                    if key == "rubeus":
+                         if "luid" in lower_out and "servicename" in lower_out:
+                             status = "FAIL"
+                             description = "Rubeus enumerated Kerberos tickets."
+                    
+                    if key == "bloodhound" or key == "sharphound":
+                        if "zip" in lower_out or "compressing" in lower_out:
+                             status = "FAIL" 
+                             description = "SharpHound collected AD data."
+                        elif "unable to get current domain" in lower_out:
+                             status = "INFO"
+                             description = "SharpHound failed: Not in a domain."
+
+                    if key == "certify":
+                        if "vulnerable template" in lower_out:
+                             status = "FAIL"
+                             description = "Certify found vulnerable templates."
+                        elif "domain either does not exist" in lower_out:
+                             status = "INFO"
+                             description = "Certify failed: Domain unreachable."
+
+                    if key == "bloodyad":
+                         if "usage:" in lower_out:
+                              status = "INFO"
+                              description = "BloodyAD loaded (Args required for exploit)."
+
+                    if key == "kerbrute":
+                         if "valid usernames" in lower_out and "scanning" in lower_out:
+                              status = "FAIL"
+                              description = "Kerbrute validated users."
+                         elif "usage:" in lower_out:
+                              status = "INFO" 
+                              description = "Kerbrute loaded (Mode selected)."
                     
                     findings.append({
                         "severity": config['risk'],
