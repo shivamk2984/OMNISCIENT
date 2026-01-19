@@ -253,8 +253,18 @@ class OmniscientMenu:
                 self.console.print(f"[red]! Update Failed:[/red]\n{result.stderr}")
                 
         except FileNotFoundError:
-            self.console.print("[bold red]! Git is not installed or not in PATH.[/bold red]")
-            self.console.print("Please install Git for Windows to enable auto-updates.")
+            self.console.print("[bold red]! Git (Portable or System) not found.[/bold red]")
+            self.console.print("[yellow][*] Portable Git is included in our 'install_deps.ps1' script.[/yellow]")
+            
+            if Prompt.ask("    Run dependency installer now to get Git?", choices=["y", "n"], default="y") == "y":
+                try:
+                    self.console.print("[dim]Launching installer...[/dim]")
+                    subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-File", "install_deps.ps1"], check=True)
+                    self.console.print("[green]✔ Installer finished. Please try 'Update' again.[/green]")
+                except Exception as e:
+                     self.console.print(f"[red]! Failed to launch installer: {e}[/red]")
+            else:
+                 self.console.print("Please run 'install_deps.ps1' manually.")
         except Exception as e:
             self.console.print(f"[bold red]! Error during update: {e}[/bold red]")
 
