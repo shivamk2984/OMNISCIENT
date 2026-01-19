@@ -1,12 +1,8 @@
 # OMNISCIENT
 
-![LOGO](https://github.com/shivamk2984/OMNISCIENT/blob/6349c665a99c6f62418a5e069e8de4cafb000b34/logo1.png)
-by codeinecasket
-
 ![Version](https://img.shields.io/badge/Version-1.0-white?style=for-the-badge&logo=windows)
 ![Platform](https://img.shields.io/badge/Platform-Windows-white?style=for-the-badge&logo=windows)
 ![License](https://img.shields.io/badge/License-GPLv3-white?style=for-the-badge&logo=gnu-bash)
-
 
 **OMNISCIENT** is a high-precision digital forensics and red-team orchestration artifact for Windows environments. It unifies deep system reconnaissance, vulnerability analysis, and offensive tool management into a single, brutalist terminal interface.
 
@@ -14,7 +10,7 @@ by codeinecasket
 
 ---
 
-## Capabilities
+## 👁️ Capabilities
 
 ### 1. Total Sight (Deep Forensics)
 OMNISCIENT sees what traditional tools miss by querying low-level Windows APIs (WMI, WinReg, Win32).
@@ -36,7 +32,7 @@ Stop managing 20 different tool windows. The **Arsenal Bridge** acts as a unifie
 
 ---
 
-## Installation
+## ⚡ Installation
 
 1.  **Clone the Artifact**:
     ```powershell
@@ -44,7 +40,12 @@ Stop managing 20 different tool windows. The **Arsenal Bridge** acts as a unifie
     cd OMNISCIENT
     ```
 
-2.  **Install Python Dependencies**:
+2.  **Install Dependencies**:
+    We provide a robust installer that handles Python setup automatically:
+    ```powershell
+    powershell -ExecutionPolicy Bypass -File install_deps.ps1
+    ```
+    *Or manually via pip:*
     ```powershell
     pip install -r requirements.txt
     ```
@@ -59,18 +60,12 @@ Stop managing 20 different tool windows. The **Arsenal Bridge** acts as a unifie
 
 ---
 
-## Usage
+## ⚔️ Usage
 
 Launch the console with administrative privileges for maximum visibility:
 
 ```powershell
 python main.py
-```
-
-For installing dependenices
-
-```powershell
-powershell -ExecutionPolicy Bypass -File install_deps.ps1
 ```
 
 ### The Interface
@@ -84,7 +79,7 @@ powershell -ExecutionPolicy Bypass -File install_deps.ps1
 
 ---
 
-## Report Artifacts
+## 📂 Report Artifacts
 
 Every scan generates a high-contrast, professional HTML report in the `reports/` folder.
 *   **Theme**: Dark/Monochrome (Brutalist).
@@ -93,7 +88,7 @@ Every scan generates a high-contrast, professional HTML report in the `reports/`
 
 ---
 
-## Disclaimer
+## ⚠️ Disclaimer
 
 **OMNISCIENT** is a security auditing tool. It is intended for:
 1.  System Administrators securing their networks.
@@ -105,9 +100,3 @@ The misuse of this tool to scan targets without permission is illegal. The devel
 ---
 
 *"Trust, but verify. Then verify again."*
-
-
-
-
-
-

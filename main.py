@@ -196,9 +196,10 @@ class OmniscientMenu:
             self.console.print("12. [white]Physical Device Trace (USB)[/white]")
             self.console.print("[dim]──────────────────────────────────────────────────────────[/dim]")
             self.console.print("13. [bold reverse]INITIATE TOTAL AUDIT[/bold reverse]")
+            self.console.print("99. [bold green]Update Tool (Git)[/bold green]")
             self.console.print("0. Exit")
             
-            choice = Prompt.ask("\n[bold white]Input Command[/bold white]", choices=["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "0"])
+            choice = Prompt.ask("\n[bold white]Input Command[/bold white]", choices=["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "99", "0"])
             
             module_map = {
                 '1': ("Recon", self.run_recon, "System"),
@@ -216,6 +217,8 @@ class OmniscientMenu:
 
             if choice == '13':
                 self.run_full_audit_with_report()
+            elif choice == '99':
+                self.run_updater()
             elif choice == '9':
                 self.display_help()
             elif choice == '0':
@@ -225,6 +228,34 @@ class OmniscientMenu:
                 self.run_visual_module_with_report_prompt(name, func, category)
             
             Prompt.ask("\n[dim]Press Enter to continue...[/dim]")
+
+    def run_updater(self):
+        self.console.rule("[bold green]SELF-UPDATE SEQUENCE[/bold green]")
+        self.console.print("[dim]Accessing remote repository...[/dim]")
+        
+        # Add local MinGit to PATH if it exists (from install_deps.ps1)
+        local_git = os.path.join(os.getcwd(), "bin", "cmd")
+        if os.path.exists(local_git):
+            os.environ["PATH"] = local_git + os.pathsep + os.environ["PATH"]
+
+        try:
+            # Check if git is installed
+            subprocess.run(["git", "--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            # Pull changes
+            result = subprocess.run(["git", "pull"], capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                self.console.print(f"[green]✔ Update Successful:[/green]\n{result.stdout}")
+                self.console.print("[bold yellow]! Please restart the tool to apply changes.[/bold yellow]")
+            else:
+                self.console.print(f"[red]! Update Failed:[/red]\n{result.stderr}")
+                
+        except FileNotFoundError:
+            self.console.print("[bold red]! Git is not installed or not in PATH.[/bold red]")
+            self.console.print("Please install Git for Windows to enable auto-updates.")
+        except Exception as e:
+            self.console.print(f"[bold red]! Error during update: {e}[/bold red]")
 
     def display_help(self):
         self.console.rule("[bold white]OMNISCIENT MANUAL[/bold white]")
