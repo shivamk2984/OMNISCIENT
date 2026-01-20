@@ -31,7 +31,16 @@ from modules.usb_audit import UsbForensics
 class OmniscientMenu:
     def check_admin_rights(self):
         try:
-            is_admin = ctypes.windll.shell32.IsUserAnAdmin()
+            is_admin = ctypes.windll.shell32.IsUserAnAdmin() != 0
+            
+            # Cross-check with net session (fails if not admin)
+            try:
+                subprocess.check_call("net session >nul 2>&1", shell=True)
+                net_session_admin = True
+            except:
+                net_session_admin = False
+                
+            self.console.print(f"[dim]Debug: IsUserAnAdmin={is_admin}, NetSession={net_session_admin}[/dim]")
         except:
             is_admin = False
 
