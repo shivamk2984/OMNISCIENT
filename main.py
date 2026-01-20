@@ -40,8 +40,10 @@ class OmniscientMenu:
             if Prompt.ask("[bold white]Attempt to Auto-Escalate to Administrator?[/bold white]", choices=["y", "n"], default="y") == "y":
                 # Re-launch the script with Admin privileges
                 try:
-                    # Relaunch via cmd /k to keep window open on crash
-                    params = f'/k "{sys.executable}" "{sys.argv[0]}"'
+                    # Relaunch via cmd /k with fixed quoting for spaces
+                    # cmd.exe /k " "path with spaces" "arg with spaces" "
+                    script_path = os.path.abspath(sys.argv[0])
+                    params = f'/k ""{sys.executable}" "{script_path}""'
                     ctypes.windll.shell32.ShellExecuteW(None, "runas", "cmd.exe", params, None, 1)
                     self.console.print("[green]New Admin window launched. You can close this one.[/green]")
                 except Exception as e:
