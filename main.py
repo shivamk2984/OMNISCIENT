@@ -43,7 +43,7 @@ class OmniscientMenu:
                     # Relaunch via cmd /k to keep window open on crash
                     params = f'/k "{sys.executable}" "{sys.argv[0]}"'
                     ctypes.windll.shell32.ShellExecuteW(None, "runas", "cmd.exe", params, None, 1)
-                    sys.exit() # Exit this instance
+                    self.console.print("[green]New Admin window launched. You can close this one.[/green]")
                 except Exception as e:
                     self.console.print(f"[red]Elevation failed: {e}. Continuing as User...[/red]")
             else:
