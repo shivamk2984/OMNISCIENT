@@ -64,6 +64,20 @@ catch {
         Write-Host "    Git is already in User PATH." -ForegroundColor Gray
     }
 }
+
+# 5. Fix Sysinternals EULA (Prevents Hanging)
+try {
+    Write-Host "`n[*] Pre-Accepting Sysinternals EULA..." -ForegroundColor Gray
+    $RegPath = "HKCU:\Software\Sysinternals"
+    if (-not (Test-Path $RegPath)) { New-Item -Path $RegPath -Force | Out-Null }
+    New-ItemProperty -Path $RegPath -Name "EulaAccepted" -Value 1 -PropertyType DWORD -Force | Out-Null
+    Write-Host "[+] Sysinternals EULA globally accepted." -ForegroundColor Green
+}
+catch {
+    Write-Host "[!] Failed to set EULA registry key. Tools might still prompt." -ForegroundColor Yellow
+}
+
+# 6. Check Python
 try {
     $pyVersion = python --version 2>&1
     Write-Host "[+] Python found: $pyVersion" -ForegroundColor Green
