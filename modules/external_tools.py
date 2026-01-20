@@ -3,6 +3,7 @@ import subprocess
 import json
 from datetime import datetime
 import ctypes
+from rich.prompt import Prompt
 
 class ExternalArsenalBridge:
     def __init__(self, console):
@@ -192,6 +193,7 @@ class ExternalArsenalBridge:
             except: pass
 
     def run_audit(self):
+        from rich.prompt import Prompt # Local import to ensure availability
         findings = []
         self.console.print(f"[dim]   - Scanning Arsenal at: {self.tools_path}[/dim]")
         self.console.print(f"[dim]   - Tool outputs will be saved to: {self.logs_path}[/dim]")
