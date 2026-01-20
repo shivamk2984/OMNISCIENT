@@ -36,10 +36,16 @@ class OmniscientMenu:
             is_admin = False
 
         if not is_admin:
-            self.console.print(Panel("[bold yellow]Running as Standard User. Elevating privileges...[/bold yellow]", border_style="yellow"))
-            # Auto-Escalate immediately (Triggers Windows UAC)
-            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
-            sys.exit()
+            self.console.print(Panel("[bold yellow]PRIVILEGE WARNING: Running as Standard User[/bold yellow]\n\nMany deep scans (Event Logs, ProcDump, Hash Dumping) will FAIL.", border_style="yellow"))
+            if Prompt.ask("[bold white]Attempt to Auto-Escalate to Administrator?[/bold white]", choices=["y", "n"], default="y") == "y":
+                # Re-launch the script with Admin privileges
+                try:
+                    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+                    sys.exit() # Exit this instance so the new Admin one takes over
+                except Exception as e:
+                    self.console.print(f"[red]Elevation failed: {e}. Continuing as User...[/red]")
+            else:
+                 self.console.print("[dim]Continuing with limited privileges...[/dim]")
 
     def __init__(self):
         self.console = Console()
