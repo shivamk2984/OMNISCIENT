@@ -24,8 +24,9 @@ from modules.browser_audit import BrowserAuditor
 from modules.sensitive_audit import SensitiveDataAuditor
 from modules.event_log_audit import EventLogAuditor
 from modules.connection_audit import ConnectionAuditor
-from modules.usb_audit import UsbForensics
+from modules.sensitive_audit import SensitiveDataAuditor
 from modules.external_tools import ExternalArsenalBridge
+from modules.web_audit import WebAppAuditor
 
 class OmniscientMenu:
     def check_admin_rights(self):
@@ -35,11 +36,10 @@ class OmniscientMenu:
             is_admin = False
 
         if not is_admin:
-            self.console.print(Panel("[bold yellow]PRIVILEGE WARNING: Running as Standard User[/bold yellow]\n\nMany deep scans (Event Logs, ProcDump, Hash Dumping) will FAIL.", border_style="yellow"))
-            if Prompt.ask("[bold white]Attempt to Auto-Escalate to Administrator?[/bold white]", choices=["y", "n"], default="y") == "y":
-                # Re-launch the script with Admin privileges
-                ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
-                sys.exit()
+            self.console.print(Panel("[bold yellow]Running as Standard User. Elevating privileges...[/bold yellow]", border_style="yellow"))
+            # Auto-Escalate immediately (Triggers Windows UAC)
+            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+            sys.exit()
 
     def __init__(self):
         self.console = Console()
@@ -53,10 +53,11 @@ class OmniscientMenu:
         self.persist_auditor = PersistenceAuditor(self.console, self.wmi_client)
         self.adv_auditor = AdvancedAuditor(self.wmi_client)
         self.browser_auditor = BrowserAuditor(self.console)
-        self.sensitive_auditor = SensitiveDataAuditor(self.console)
+        self.forensics_auditor = SensitiveDataAuditor(self.console)
         self.conn_auditor = ConnectionAuditor(self.console, self.wmi_client)
         self.event_auditor = EventLogAuditor(self.console)
         self.usb_auditor = UsbForensics(self.console)
+        self.web_auditor = WebAppAuditor(self.console)
         self.arsenal_auditor = ExternalArsenalBridge(self.console)
         
         self.last_system_info = self.recon.get_system_info() 
@@ -210,12 +211,13 @@ class OmniscientMenu:
             self.console.print("10. [white]Event Log Hunter[/white]")
             self.console.print("11. [white]Live Connection Map[/white]")
             self.console.print("12. [white]Physical Device Trace (USB)[/white]")
+            self.console.print("14. [white]Web App Scanner[/white]")
             self.console.print("[dim]──────────────────────────────────────────────────────────[/dim]")
             self.console.print("13. [bold reverse]INITIATE TOTAL AUDIT[/bold reverse]")
             self.console.print("99. [bold green]Update Tool (Git)[/bold green]")
             self.console.print("0. Exit")
             
-            choice = Prompt.ask("\n[bold white]Input Command[/bold white]", choices=["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "99", "0"])
+            choice = Prompt.ask("\n[bold white]Input Command[/bold white]", choices=["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "99", "0"])
             
             module_map = {
                 '1': ("Recon", self.run_recon, "System"),
@@ -229,6 +231,7 @@ class OmniscientMenu:
                 '10': ("Deep Event Logs", self.event_auditor.run_audit, "Logs"),
                 '11': ("Connection Map", self.conn_auditor.run_audit, "Network"),
                 '12': ("USB Forensics", self.usb_auditor.run_audit, "Physical"),
+                '14': ("Web Scanner", self.web_auditor.run_audit, "Web"),
             }
 
             if choice == '13':
