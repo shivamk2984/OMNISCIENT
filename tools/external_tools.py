@@ -2,6 +2,8 @@ import os
 import subprocess
 import json
 from datetime import datetime
+from datetime import datetime
+import ctypes
 from rich.prompt import Prompt
 
 class ExternalArsenalBridge:
@@ -11,7 +13,11 @@ class ExternalArsenalBridge:
         self.logs_path = os.path.join(os.getcwd(), "logs", f"arsenal_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
         self._ensure_paths()
         
-        # Define supported tools and their audit commands (Binaries must be in tools/ folder)
+        # Smart Context Detection
+        self.is_admin = ctypes.windll.shell32.IsUserAnAdmin() != 0
+        self.is_domain = os.environ.get('USERDOMAIN', '').lower() != os.environ.get('COMPUTERNAME', '').lower()
+        
+        # Define supported tools
         self.supported_tools = {
             "mimikatz": {
                 "bin": "mimikatz.exe", 
@@ -32,7 +38,8 @@ class ExternalArsenalBridge:
                 "args": "quiet systeminfo userinfo networkinfo servicesinfo applicationsinfo", 
                 "name": "WinPEAS (PrivEsc)", 
                 "category": "Post-Exploitation", 
-                "risk": "High"
+                "risk": "High",
+                "timeout": 60
             },
             "watson": {
                 "bin": "Watson.exe", 
@@ -97,7 +104,6 @@ class ExternalArsenalBridge:
                 "category": "RedTeam", 
                 "risk": "Medium"
             },
-
             "chisel": {
                 "bin": "chisel.exe", 
                 "args": "--help", 
@@ -126,8 +132,7 @@ class ExternalArsenalBridge:
                 "category": "Network", 
                 "risk": "Medium"
             },
-
-             "procdump": {
+            "procdump": {
                 "bin": "procdump.exe", 
                 "args": "-accepteula -ma lsass.exe lsass_dump.dmp", 
                 "name": "ProcDump (LSASS)", 
@@ -139,7 +144,8 @@ class ExternalArsenalBridge:
                 "args": "-accepteula -a * -c * -h -s -t", 
                 "name": "AutorunsC", 
                 "category": "Persistence", 
-                "risk": "Medium"
+                "risk": "Medium",
+                "timeout": 60
             },
             "accesschk": {
                 "bin": "accesschk.exe", 
@@ -160,7 +166,8 @@ class ExternalArsenalBridge:
                 "args": "-accepteula -a -n -c", 
                 "name": "TcpView (CLI)", 
                 "category": "Sysinternals", 
-                "risk": "Info"
+                "risk": "Info",
+                "timeout": 30
             },
             "handle": {
                 "bin": "handle.exe", 
@@ -171,15 +178,8 @@ class ExternalArsenalBridge:
             },
             "sigcheck": {
                 "bin": "sigcheck.exe", 
-                "args": "-accepteula -u -e c:\\windows\\system32", 
-                "name": "SigCheck (Unsigned)", 
-                "category": "Sysinternals", 
-                "risk": "Info"
-            },
-            "whois": {
-                "bin": "whois.exe", 
-                "args": "-accepteula -v google.com", 
-                "name": "Whois Test", 
+                "args": "-accepteula -u -v -c c:\\windows\\system32\\drivers", 
+                "name": "SigCheck (Unsigned Drivers)", 
                 "category": "Sysinternals", 
                 "risk": "Info"
             }
@@ -198,6 +198,11 @@ class ExternalArsenalBridge:
         self.console.print(f"[dim]   - Scanning Arsenal at: {self.tools_path}[/dim]")
         self.console.print(f"[dim]   - Tool outputs will be saved to: {self.logs_path}[/dim]")
         
+        if not self.is_admin:
+            self.console.print("[yellow]   [!] Running as Standard User. High-privilege tools will be skipped.[/yellow]")
+        if not self.is_domain:
+            self.console.print("[dim]   [i] Workgroup detected. AD-specific tools will be skipped.[/dim]")
+
         installed_tools = []
         
         for key, config in self.supported_tools.items():
@@ -211,12 +216,24 @@ class ExternalArsenalBridge:
                 "category": "Arsenal",
                 "check": "Tool Availability",
                 "status": "EMPTY",
-                "details": f"No external binaries found. Add tools to {self.tools_path}"
+                "details": "No external binaries found in 'tools/' directory. Run 'tools/download_tools.ps1' to populate."
             })
             return findings
 
         for key, path in installed_tools:
             config = self.supported_tools[key]
+            
+            # Smart Skipping Logic
+            if config['category'] in ["AD Recon", "AD Exploitation"] and not self.is_domain:
+                findings.append({
+                    "severity": "Info", 
+                    "category": config['category'], 
+                    "check": f"{config['name']} Check", 
+                    "status": "SKIP", 
+                    "details": "Skipped: Not domain-joined."
+                })
+                continue
+            
             self.console.print(f"[bold cyan]   > Executing Bridge: {config['name']}...[/bold cyan]")
             
             try:
@@ -231,7 +248,6 @@ class ExternalArsenalBridge:
                          domain = Prompt.ask("       Domain (e.g. contoso.com)")
                          username = Prompt.ask("       Username")
                          password = Prompt.ask("       Password")
-                         # Construct the specialized command
                          current_args = f"-d {domain} -u {username} -p {password} --host {target_ip} get children"
                     else:
                         self.console.print("[dim]       Skipping interactive mode (using default help).[/dim]")
@@ -250,7 +266,9 @@ class ExternalArsenalBridge:
                 full_cmd = f'"{path}" {current_args}'
                 
                 try:
-                    output = subprocess.check_output(full_cmd, shell=True, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, timeout=15).decode(errors='ignore')
+                    # Dynamic Timeout
+                    time_limit = config.get('timeout', 15)
+                    output = subprocess.check_output(full_cmd, shell=True, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, timeout=time_limit).decode(errors='ignore')
                     
                     # Save Output to Log File
                     log_file_name = f"{key}_output.txt"
@@ -327,7 +345,7 @@ class ExternalArsenalBridge:
                     findings.append({
                         "severity": config['risk'],
                         "category": config['category'],
-                        "check": f"{config['name']} Check",
+                        "check": f"{config['name']} Status",
                         "status": status,
                         "details": description
                     })
