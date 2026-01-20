@@ -10,6 +10,7 @@ from rich.markup import escape
 import time
 import os
 import random
+import ctypes
 
 # Import Modules
 from modules.recon import SystemRecon
@@ -27,8 +28,22 @@ from modules.usb_audit import UsbForensics
 from modules.external_tools import ExternalArsenalBridge
 
 class OmniscientMenu:
+    def check_admin_rights(self):
+        try:
+            is_admin = ctypes.windll.shell32.IsUserAnAdmin()
+        except:
+            is_admin = False
+
+        if not is_admin:
+            self.console.print(Panel("[bold yellow]PRIVILEGE WARNING: Running as Standard User[/bold yellow]\n\nMany deep scans (Event Logs, ProcDump, Hash Dumping) will FAIL.", border_style="yellow"))
+            if Prompt.ask("[bold white]Attempt to Auto-Escalate to Administrator?[/bold white]", choices=["y", "n"], default="y") == "y":
+                # Re-launch the script with Admin privileges
+                ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+                sys.exit()
+
     def __init__(self):
         self.console = Console()
+        self.check_admin_rights() # Strict check on startup
         self.recon = SystemRecon(self.console)
         self.wmi_client = self.recon.wmi_client
         
