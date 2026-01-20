@@ -15,40 +15,7 @@ class ExternalArsenalBridge:
         self.is_admin = ctypes.windll.shell32.IsUserAnAdmin() != 0
         self.is_domain = os.environ.get('USERDOMAIN', '').lower() != os.environ.get('COMPUTERNAME', '').lower()
         
-        # Define supported tools ... (Rest of init)
-
-    # ... (Rest of methods) ...
-
-    def run_audit(self):
-        findings = []
-        self.console.print(f"[dim]   - Scanning Arsenal at: {self.tools_path}[/dim]")
-        
-        if not self.is_admin:
-            self.console.print("[yellow]   [!] Running as Standard User. High-privilege tools will be skipped.[/yellow]")
-        if not self.is_domain:
-            self.console.print("[dim]   [i] Workgroup detected. AD-specific tools will be skipped.[/dim]")
-
-        # ... (Get installed tools) ...
-
-        for key, path in installed_tools:
-            config = self.supported_tools[key]
-            
-            # Smart Skipping Logic
-            if config['category'] in ["AD Recon", "AD Exploitation"] and not self.is_domain:
-                findings.append({
-                    "severity": "Info", 
-                    "category": config['category'], 
-                    "check": f"{config['name']} Check", 
-                    "status": "SKIP", 
-                    "details": "Skipped: Not domain-joined."
-                })
-                continue
-            
-            # Simplify skipping for admin tools if needed, or just let them run and fail gracefully (better for visibility)
-            # but usually Mimikatz/ProcDump simply fail. We'll let them run but log cleanly.
-            
-            self.console.print(f"[bold cyan]   > Executing Bridge: {config['name']}...[/bold cyan]")
-            # ... (Rest of execution logic) ...
+        # Define supported tools
         self.supported_tools = {
             "mimikatz": {
                 "bin": "mimikatz.exe", 
@@ -72,65 +39,6 @@ class ExternalArsenalBridge:
                 "risk": "High",
                 "timeout": 60
             },
-            # ... (truncated for brevity, logic applies to structure) ...
-            "autorunsc": {
-                "bin": "autorunsc.exe", 
-                "args": "-accepteula -a * -c * -h -s -t", 
-                "name": "AutorunsC", 
-                "category": "Persistence", 
-                "risk": "Medium",
-                "timeout": 60
-            },
-            "tcpview": {
-                "bin": "Tcpview.exe", 
-                "args": "-accepteula -a -n -c", 
-                "name": "TcpView (CLI)", 
-                "category": "Sysinternals", 
-                "risk": "Info",
-                "timeout": 30
-            },
-
-            # ... inside run_audit ...
-
-                try:
-                    # Dynamic Timeout
-                    time_limit = config.get('timeout', 15)
-                    output = subprocess.check_output(full_cmd, shell=True, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, timeout=time_limit).decode(errors='ignore')
-                    
-                    # ... (existing success logic) ...
-
-                except subprocess.TimeoutExpired:
-                     # ... (existing timeout logic) ...
-                    
-                except subprocess.CalledProcessError as e:
-                    # Better handling for tools that return non-zero on Help/Partial success
-                    out_txt = e.output.decode(errors='ignore') if e.output else ""
-                    lower_out = out_txt.lower()
-                    
-                    status = "INFO"
-                    if "usage:" in lower_out or "optional arguments:" in lower_out:
-                        description = f"Tool returned Exit Code {e.returncode} (Help Menu). Log: {key}_output.txt"
-                    elif "access denied" in lower_out:
-                         description = f"Tool Blocked: Access Denied (Exit {e.returncode})."
-                    else:
-                         description = f"Execution returned non-zero. Likely blocked by AV or permissions. (Code {e.returncode})"
-                    
-                    # Write the error output to log so user can see it
-                    log_file_name = f"{key}_output.txt"
-                    log_file_path = os.path.join(self.logs_path, log_file_name)
-                    with open(log_file_path, "w", encoding="utf-8") as f:
-                        f.write(f"COMMAND: {full_cmd}\n")
-                        f.write(f"EXIT CODE: {e.returncode}\n")
-                        f.write("="*50 + "\n")
-                        f.write(out_txt)
-
-                    findings.append({
-                        "severity": "Info",
-                        "category": config['category'],
-                        "check": f"{config['name']} Status",
-                        "status": status,
-                        "details": description
-                    })
             "watson": {
                 "bin": "Watson.exe", 
                 "args": "", 
@@ -194,7 +102,6 @@ class ExternalArsenalBridge:
                 "category": "RedTeam", 
                 "risk": "Medium"
             },
-
             "chisel": {
                 "bin": "chisel.exe", 
                 "args": "--help", 
@@ -223,8 +130,7 @@ class ExternalArsenalBridge:
                 "category": "Network", 
                 "risk": "Medium"
             },
-
-             "procdump": {
+            "procdump": {
                 "bin": "procdump.exe", 
                 "args": "-accepteula -ma lsass.exe lsass_dump.dmp", 
                 "name": "ProcDump (LSASS)", 
@@ -236,7 +142,8 @@ class ExternalArsenalBridge:
                 "args": "-accepteula -a * -c * -h -s -t", 
                 "name": "AutorunsC", 
                 "category": "Persistence", 
-                "risk": "Medium"
+                "risk": "Medium",
+                "timeout": 60
             },
             "accesschk": {
                 "bin": "accesschk.exe", 
@@ -257,7 +164,8 @@ class ExternalArsenalBridge:
                 "args": "-accepteula -a -n -c", 
                 "name": "TcpView (CLI)", 
                 "category": "Sysinternals", 
-                "risk": "Info"
+                "risk": "Info",
+                "timeout": 30
             },
             "handle": {
                 "bin": "handle.exe", 
@@ -288,6 +196,11 @@ class ExternalArsenalBridge:
         self.console.print(f"[dim]   - Scanning Arsenal at: {self.tools_path}[/dim]")
         self.console.print(f"[dim]   - Tool outputs will be saved to: {self.logs_path}[/dim]")
         
+        if not self.is_admin:
+            self.console.print("[yellow]   [!] Running as Standard User. High-privilege tools will be skipped.[/yellow]")
+        if not self.is_domain:
+            self.console.print("[dim]   [i] Workgroup detected. AD-specific tools will be skipped.[/dim]")
+
         installed_tools = []
         
         for key, config in self.supported_tools.items():
@@ -307,6 +220,18 @@ class ExternalArsenalBridge:
 
         for key, path in installed_tools:
             config = self.supported_tools[key]
+            
+            # Smart Skipping Logic
+            if config['category'] in ["AD Recon", "AD Exploitation"] and not self.is_domain:
+                findings.append({
+                    "severity": "Info", 
+                    "category": config['category'], 
+                    "check": f"{config['name']} Check", 
+                    "status": "SKIP", 
+                    "details": "Skipped: Not domain-joined."
+                })
+                continue
+            
             self.console.print(f"[bold cyan]   > Executing Bridge: {config['name']}...[/bold cyan]")
             
             try:
@@ -321,7 +246,6 @@ class ExternalArsenalBridge:
                          domain = Prompt.ask("       Domain (e.g. contoso.com)")
                          username = Prompt.ask("       Username")
                          password = Prompt.ask("       Password")
-                         # Construct the specialized command
                          current_args = f"-d {domain} -u {username} -p {password} --host {target_ip} get children"
                     else:
                         self.console.print("[dim]       Skipping interactive mode (using default help).[/dim]")
@@ -340,7 +264,9 @@ class ExternalArsenalBridge:
                 full_cmd = f'"{path}" {current_args}'
                 
                 try:
-                    output = subprocess.check_output(full_cmd, shell=True, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, timeout=15).decode(errors='ignore')
+                    # Dynamic Timeout
+                    time_limit = config.get('timeout', 15)
+                    output = subprocess.check_output(full_cmd, shell=True, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, timeout=time_limit).decode(errors='ignore')
                     
                     # Save Output to Log File
                     log_file_name = f"{key}_output.txt"
@@ -417,7 +343,7 @@ class ExternalArsenalBridge:
                     findings.append({
                         "severity": config['risk'],
                         "category": config['category'],
-                        "check": f"{config['name']} Check",
+                        "check": f"{config['name']} Status",
                         "status": status,
                         "details": description
                     })
