@@ -37,19 +37,28 @@ class OmniscientMenu:
 
         if not is_admin:
             self.console.print(Panel("[bold yellow]PRIVILEGE WARNING: Running as Standard User[/bold yellow]\n\nMany deep scans (Event Logs, ProcDump, Hash Dumping) will FAIL.", border_style="yellow"))
-            if Prompt.ask("[bold white]Attempt to Auto-Escalate to Administrator?[/bold white]", choices=["y", "n"], default="y") == "y":
-                # Re-launch the script with Admin privileges
+            # Ask user
+            ans = Prompt.ask("[bold white]Attempt to Auto-Escalate to Administrator?[/bold white]", choices=["y", "n"], default="y")
+            
+            if ans == "y":
                 try:
-                    # Relaunch via cmd /k with fixed quoting for spaces
-                    # cmd.exe /k " "path with spaces" "arg with spaces" "
+                    # 1. Get absolute paths
                     script_path = os.path.abspath(sys.argv[0])
-                    params = f'/k ""{sys.executable}" "{script_path}""'
+                    script_dir = os.path.dirname(script_path)
+                    script_name = os.path.basename(script_path)
+                    
+                    # 2. Construct robust command: cd to dir -> run script
+                    # cmd.exe /k "cd /d "D:\Path" && "python" "main.py""
+                    params = f'/k "cd /d "{script_dir}" && "{sys.executable}" "{script_name}""'
+                    
+                    # 3. Trigger UAC
                     ctypes.windll.shell32.ShellExecuteW(None, "runas", "cmd.exe", params, None, 1)
-                    self.console.print("[green]New Admin window launched. You can close this one.[/green]")
+                    self.console.print("[green]New Admin window launched. Can close this one.[/green]")
                 except Exception as e:
-                    self.console.print(f"[red]Elevation failed: {e}. Continuing as User...[/red]")
+                    self.console.print(f"[red]Elevation failed: {e}.[/red]")
             else:
-                 self.console.print("[dim]Continuing with limited privileges...[/dim]")
+                 # User chose 'n' - Continue normally
+                 self.console.print("[yellow]Running in restricted mode (User). Some modules will fail.[/yellow]")
 
     def __init__(self):
         self.console = Console()
