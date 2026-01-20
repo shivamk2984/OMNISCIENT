@@ -38,7 +38,7 @@ class ExternalArsenalBridge:
                 "name": "WinPEAS (PrivEsc)", 
                 "category": "Post-Exploitation", 
                 "risk": "High",
-                "timeout": 60
+                "timeout": 120
             },
             "watson": {
                 "bin": "Watson.exe", 
@@ -136,7 +136,7 @@ class ExternalArsenalBridge:
                 "args": "-accepteula -ma lsass.exe lsass_dump.dmp", 
                 "name": "ProcDump (LSASS)", 
                 "category": "Sysinternals", 
-                "risk": "High"
+                "risk": "Critical"
             },
             "autorunsc": {
                 "bin": "autorunsc.exe", 
@@ -148,7 +148,7 @@ class ExternalArsenalBridge:
             },
             "accesschk": {
                 "bin": "accesschk.exe", 
-                "args": "-accepteula -uwcqv *", 
+                "args": "-accepteula -u -w -c -q *", 
                 "name": "AccessChk (Writeable Svcs)", 
                 "category": "Sysinternals", 
                 "risk": "Info"
@@ -157,21 +157,6 @@ class ExternalArsenalBridge:
                 "bin": "psloglist.exe", 
                 "args": "-accepteula security -n 100", 
                 "name": "PsLogList (Last 100 SecEvents)", 
-                "category": "Sysinternals", 
-                "risk": "Info"
-            },
-            "tcpview": {
-                "bin": "Tcpview.exe", 
-                "args": "-accepteula -a -n -c", 
-                "name": "TcpView (CLI)", 
-                "category": "Sysinternals", 
-                "risk": "Info",
-                "timeout": 30
-            },
-            "handle": {
-                "bin": "handle.exe", 
-                "args": "-accepteula -a -u", 
-                "name": "Handle Viewer", 
                 "category": "Sysinternals", 
                 "risk": "Info"
             },
@@ -211,17 +196,34 @@ class ExternalArsenalBridge:
                 installed_tools.append((key, path))
 
         if not installed_tools:
+            details = "No external binaries found in 'tools/' directory."
+            
+            # Check for helper script
+            helper_script = os.path.join(self.tools_path, "download_tools.ps1")
+            if os.path.exists(helper_script):
+                details += f"\n[bold green]TIP: Run '{helper_script}' to automatically download them.[/bold green]"
+            
             findings.append({
                 "severity": "Info",
                 "category": "Arsenal",
                 "check": "Tool Availability",
                 "status": "EMPTY",
-                "details": "No external binaries found in 'tools/' directory. Run 'tools/download_tools.ps1' to populate."
+                "details": details
             })
             return findings
 
+        # Sort tools by category for cleaner execution flow
+        installed_tools.sort(key=lambda x: self.supported_tools[x[0]]['category'])
+        
+        current_category = None
+
         for key, path in installed_tools:
             config = self.supported_tools[key]
+            
+            # Category Header
+            if config['category'] != current_category:
+                current_category = config['category']
+                self.console.rule(f"[bold purple]Category: {current_category}[/bold purple]")
             
             # Smart Skipping Logic
             if config['category'] in ["AD Recon", "AD Exploitation"] and not self.is_domain:
@@ -261,7 +263,54 @@ class ExternalArsenalBridge:
                     else:
                          self.console.print("[dim]       Skipping interactive mode (using default help).[/dim]")
                 
-                # -------------------------------------
+                elif key == "chisel":
+                     self.console.print("[yellow]   [*] Chisel requires a server/client connection.[/yellow]")
+                     if Prompt.ask("       Run Chisel interactively?", choices=["y", "n"], default="n") == "y":
+                         mode = Prompt.ask("       Mode", choices=["server", "client"], default="client")
+                         if mode == "server":
+                             port = Prompt.ask("       Port", default="8080")
+                             current_args = f"server -p {port} --reverse"
+                         else:
+                             server = Prompt.ask("       Server IP:Port")
+                             current_args = f"client {server} R:socks"
+                 
+                 elif key == "ligolo":
+                     self.console.print("[yellow]   [*] Ligolo requires interface configuration.[/yellow]")
+                     if Prompt.ask("       Run Ligolo interactively?", choices=["y", "n"], default="n") == "y":
+                         mode = Prompt.ask("       Action", choices=["setup", "connect"], default="connect")
+                         if mode == "setup":
+                             current_args = "-setup"
+                         else:
+                             server = Prompt.ask("       Relay IP:Port")
+                             current_args = f"-connect {server}"
+
+                 elif key == "nc":
+                     if Prompt.ask("       Run Netcat interactively?", choices=["y", "n"], default="n") == "y":
+                         mode = Prompt.ask("       Mode", choices=["connect", "listen"], default="connect")
+                         if mode == "listen":
+                             port = Prompt.ask("       Port", default="4444")
+                             current_args = f"-lvp {port}"
+                         else:
+                             server = Prompt.ask("       Target IP")
+                             port = Prompt.ask("       Port")
+                             current_args = f"{server} {port}"
+
+                 elif key == "plink":
+                     if Prompt.ask("       Run Plink (PuTTY) interactively?", choices=["y", "n"], default="n") == "y":
+                         user = Prompt.ask("       Username")
+                         pw = Prompt.ask("       Password")
+                         host = Prompt.ask("       Host IP")
+                         current_args = f"-ssh -l {user} -pw {pw} {host}"
+
+                 elif key == "printnightmare":
+                     self.console.print("[yellow]   [*] PrintNightmare Exploit Check.[/yellow]")
+                     if Prompt.ask("       Run Exploit against Target?", choices=["y", "n"], default="n") == "y":
+                          target = Prompt.ask("       Target IP/Hostname")
+                          current_args = f"{target}"
+                     else:
+                          current_args = "-h" # Safe default
+
+                 # -------------------------------------
 
                 full_cmd = f'"{path}" {current_args}'
                 
