@@ -24,9 +24,9 @@ from modules.browser_audit import BrowserAuditor
 from modules.sensitive_audit import SensitiveDataAuditor
 from modules.event_log_audit import EventLogAuditor
 from modules.connection_audit import ConnectionAuditor
-from modules.sensitive_audit import SensitiveDataAuditor
 from modules.external_tools import ExternalArsenalBridge
 from modules.web_audit import WebAppAuditor
+from modules.usb_audit import UsbForensics
 
 class OmniscientMenu:
     def check_admin_rights(self):
@@ -48,12 +48,16 @@ class OmniscientMenu:
                     script_name = os.path.basename(script_path)
                     
                     # 2. Construct robust command: cd to dir -> run script
-                    # cmd.exe /k "cd /d "D:\Path" && "python" "main.py""
-                    params = f'/k "cd /d "{script_dir}" && "{sys.executable}" "{script_name}""'
+                    # Use simple chaining. nesting quotes specifically for cmd /k can be tricky.
+                    # We pass the full command line to /k without wrapping the whole thing in extra quotes,
+                    # relying on the individual argument quotes (e.g. "path/to/dir" and "python.exe")
+                    params = f'/k cd /d "{script_dir}" && "{sys.executable}" "{script_name}"'
                     
                     # 3. Trigger UAC
                     ctypes.windll.shell32.ShellExecuteW(None, "runas", "cmd.exe", params, None, 1)
-                    self.console.print("[green]New Admin window launched. Can close this one.[/green]")
+                    self.console.print("[green]New Admin window launched. Closing this restricted instance...[/green]")
+                    time.sleep(2) # Give user a moment to read
+                    sys.exit(0)
                 except Exception as e:
                     self.console.print(f"[red]Elevation failed: {e}.[/red]")
             else:
@@ -408,7 +412,7 @@ class OmniscientMenu:
     
     def run_forensics_audit(self):
         f = self.browser_auditor.run_audit()
-        f.extend(self.sensitive_auditor.run_audit())
+        f.extend(self.forensics_auditor.run_audit())
         return f
 
     def run_full_audit_with_report(self):
